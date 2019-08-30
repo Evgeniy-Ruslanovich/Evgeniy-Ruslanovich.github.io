@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Loop 1 - Step 1</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="text/javascript" src="http://code.jquery.com/jquery-3.4.1.min.js"></script>
+</head>
+<body>
+<div class="tarif_container">
+    <div class="tarif_container_inner">
+        <div class="tarif_item" tarif="1">
+            <div class="tarif_item_inner">
+                <div class="picture">
+                    <img src="img/device.svg">
+                </div>
+                <p class="header">Mobile</p>
+                <p class="description">Get notifications about new releases in our mobile app.</p>
+                <p class="price"><sup>$</sup>10<span class="month"> / month</span></p>
+            </div>
+        </div>
+        <div class="tarif_item" tarif="2">
+            <div class="tarif_item_inner">
+                <div class="picture">
+                    <img src="img/laptop.svg">
+                </div>
+                <p class="header">Desktop</p>
+                <p class="description">Enjoy new episodes on your laptop in browser with our web service, which supports all the platforms.</p>
+                <p class="price"><sup>$</sup>15<span class="month"> / month</span></p>
+            </div>
+        </div>
+        <div class="tarif_item" tarif="3">
+            <div class="tarif_item_inner">
+                <div class="picture">
+                    <img src="img/monitor.svg">
+                </div>
+                <p class="header">TV</p>
+                <p class="description">Watch yuor favorite series at home on large screen wuth our TV application.</p>
+                <p class="price"><sup>$</sup>20<span class="month"> / month</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal_wrapper" id="modal1" style="display:none">
+    <div class="tarif_item tarif_item_modal">
+        <div class=modal_top>
+            <div class="cross"><img src="img/cross.svg"></div>
+            <p><b>Confirmation</b><p>
+            <div style="clear:both"></div>
+        </div>
+        <div class="tarif_item_inner">
+            <div class="picture">
+            <img src="img/device.svg">
+            </div>
+            <p class="header">Mobile</p>
+            <p class="description">Get notifications about new releases in our mobile app.</p>
+            <p class="price"><sup>$</sup>10<span class="month"> / month</span></p>
+            <div class="button_div">
+                <button>Confirm and pay</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal_wrapper" id="modal2" style="display:none">
+    <div class="tarif_item tarif_item_modal">
+        <div class=modal_top>
+            <div class="cross"><img src="img/cross.svg"></div>
+            <p><b>Confirmation</b><p>
+            <div style="clear:both"></div>
+        </div>
+        <div class="tarif_item_inner">
+            <div class="picture">
+                <img src="img/laptop.svg">
+            </div>
+            <p class="header">Desktop</p>
+            <p class="description">Enjoy new episodes on your laptop in browser with our web service, which supports all the platforms.</p>
+            <p class="price"><sup>$</sup>15<span class="month"> / month</span></p>
+            <div class="button_div">
+                <button>Confirm and pay</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal_wrapper" id="modal3" style="display:none">
+    <div class="tarif_item tarif_item_modal">
+        <div class=modal_top>
+            <div class="cross"><img src="img/cross.svg"></div>
+            <p><b>Confirmation</b><p>
+            <div style="clear:both"></div>
+        </div>
+        <div class="tarif_item_inner">
+            <div class="picture">
+                <img src="img/monitor.svg">
+            </div>
+            <p class="header">TV</p>
+            <p class="description">Watch yuor favorite series at home on large screen wuth our TV application.</p>
+            <p class="price"><sup>$</sup>20<span class="month"> / month</span></p>
+            <div class="button_div">
+                <button>Confirm and pay</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+//На чистом JS
+    function closeModal(){
+        var modals = document.getElementsByClassName('modal_wrapper');//document.querySelectorAll('.modal_wrapper');
+        for (let i=0; i<modals.length; i++) {
+            modals[i].style.display = 'none';
+        }
+    }
+
+    function openModal(element){
+        var tarif = element.getAttribute('tarif');
+        var modal = document.getElementById('modal' + tarif);
+        modal.style.display = 'block';
+    }
+
+    var tarifContainers = document.querySelectorAll('.tarif_container .tarif_item');
+    for (let i=0; i<tarifContainers.length; i++) {
+        tarifContainers[i].onclick = function(event){
+            openModal(this);
+        };
+    }
+
+    var modalWrappers = document.getElementsByClassName('modal_wrapper');
+    for (let i=0; i<modalWrappers.length; i++) {
+        modalWrappers[i].onclick = function(event){
+            if(this == event.target){
+                closeModal();
+            }
+        };
+    }
+
+var crosses = document.querySelectorAll('.modal_top img');
+for (let i=0; i<crosses.length; i++) {
+    crosses[i].onclick = function(){
+        closeModal();
+    };
+}
+
+//На jquery. То же самое, но с плавными переходами:
+   /*function closeModal(){
+        $('.modal_wrapper').fadeOut();
+        var modals = document.getElementByClassName('')
+    function openModal(element){
+        var tarif = $(element).attr('tarif');
+        $('#modal' + tarif).fadeIn();
+    }
+    $('.tarif_container .tarif_item').click(function(event){
+        openModal(this);
+    });
+    $('.modal_top img').click(function(){
+        closeModal();
+    });
+    $('.modal_wrapper').click(function(event){
+        if(this == event.target){
+            closeModal();
+        }
+    });
+    }*/ 
+</script>
+</body>
+</html>
