@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://paymentpage.ecommpay.com/shared/merchant.css" rel="stylesheet">
+    <link href="./bootstrap.css" rel="stylesheet">
+    <title>Title</title>
+</head>
+<body>
+
+<!--<h1>One click</h1>
+<p class="one-click-title">One click window</p>
+<div id="one-click-window"></div>
+-->
+
+<style>
+    #custom-terminal-log {
+        overflow: auto;
+        max-height: 200px;
+        font-size: .8em;
+    }
+
+    .terminal-wrap {
+    }
+
+    .terminal-wrap iframe {
+        width: 100%;
+        height: 100%;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .label-container {
+        display: block;
+        position: relative;
+        /*padding-left: 35px;*/
+        margin-bottom: 15px;
+        cursor: pointer;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    /* Custom checkbox */
+    .label-container input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .checkmark {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 20px;
+        width: 20px;
+        background-color: #ddd;
+    }
+
+    /* On mouse-over, add a grey background color */
+    .label-container:hover input ~ .checkmark {
+        background-color: #ccc;
+    }
+
+    /* When the checkbox is checked, add a blue background */
+    .label-container input:checked ~ .checkmark {
+        background-color: #6cc07b;
+    }
+
+    /* Create the checkmark/indicator (hidden when not checked) */
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+
+    /* Show the checkmark when checked */
+    .label-container input:checked ~ .checkmark:after {
+        display: block;
+    }
+
+    /* Style the checkmark/indicator */
+    .label-container .checkmark:after {
+        left: 8px;
+        top: 4px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        -webkit-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        transform: rotate(45deg);
+    }
+
+    #iframe-holder {
+        outline: 1px dashed #2d6987;
+        width: 100%;
+        height: 700px;
+        margin: 20px auto;
+        overflow: auto;
+        resize: none;
+    }
+
+    body.with_ep_popup {
+        overflow: hidden;
+    }
+
+    .dummy-hello {
+        margin: 0 auto;
+    }
+
+    #merchant-side-emulation {
+        display: none;
+    }
+
+    #microframeMode:checked ~ #merchant-side-emulation {
+        display: block;
+    }
+</style>
+
+<div class="container">
+
+    <div class="row text-center">
+        <h2 class="text-center text-uppercase" style="margin-bottom: 0">Terminal builder</h2>
+    </div>
+
+
+    <div class="row options">
+        <form id="custom-terminal-form">
+
+            <div class="col-md-2">
+                <h4 class="text-uppercase">Payment</h4>
+                <div class="form-group">
+                    <label for="project_id">Project ID</label>
+                    <input type="text" id="project_id" name="project_id" class="form-control input-sm" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="terminal_id">Terminal ID</label>
+                    <input type="text" id="terminal_id" name="terminal_id" class="form-control input-sm" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="style_id">Style ID</label>
+                    <input type="text" id="style_id" name="style_id" class="form-control input-sm" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="payment_id" class="label-important">Payment ID</label>
+                    <input type="text" id="payment_id" name="payment_id" class="form-control input-sm" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="payment_amount" class="label-important">Payment amount</label>
+                    <input type="number" id="payment_amount" name="payment_amount" class="form-control input-sm"
+                           value="99"/>
+                </div>
+                <div class="form-group">
+                    <label for="payment_currency" class="label-important">Currency</label>
+                    <input type="text" maxlength="3" id="payment_currency" class="form-control input-sm"
+                           name="payment_currency"/>
+                </div>
+                <div class="form-group">
+                    <label for="default_payment_method">Default PM</label>
+                    <select id="default_payment_method" name="default_payment_method" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="card">Card</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="force_payment_method">Force PM</label>
+                    <select id="force_payment_method" name="force_payment_method" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="card">Card</option>
+                        <option value="argentina">Argentina</option>
+                        <option value="apple_pay">Apple pay</option>
+                        <option value="apple_pay_core">Apple Pay Integrated</option>
+                        <option value="advcash_direct">ADVCash Direct</option>
+                        <option value="astropay">Astropay</option>
+                        <option value="jetonWallet">Jeton Wallet</option>
+                        <option value="globepay">GlobePay</option>
+                        <option value="qiwi">Qiwi Wallet</option>
+                        <option value="mobile">Mobile</option>
+                        <option value="china-banks">China banks</option>
+                        <option value="china-banks-p2p">China banks p2p</option>
+                        <option value="cup-bank">CUP Bank</option>
+                        <option value="cup-card">CUP Card</option>
+                        <option value="cup-union">CUP Union</option>
+                        <option value="cup-quick">CUP Quick</option>
+                        <option value="cup-qr">CUP QR</option>
+                        <option value="depkasa">DepKasa</option>
+                        <option value="directdebit-bacs">Direct Debit BACS</option>
+                        <option value="directdebit-sepa">Direct Debit SEPA</option>
+                        <option value="instantbanking">Instantbanking</option>
+                        <option value="epaycode">EPayCode</option>
+                        <option value="gscash">GSCash</option>
+                        <option value="sofort">Sofort</option>
+                        <option value="giftcard">Giftcard</option>
+                        <option value="google_pay">Google pay</option>
+                        <option value="google_pay_host">Google pay host</option>
+                        <option value="ecopayz">Ecopayz</option>
+                        <option value="ecoVoucher">EcoVoucher</option>
+                        <option value="alfa-click-paybox">Alfa-Bank</option>
+                        <option value="atf24">ATF24</option>
+                        <option value="homebank">HomeBank</option>
+                        <option value="kassa24">Kassa24</option>
+                        <option value="cashin-kz-qiwi">Qiwikz paybox</option>
+                        <option value="kazpost">Kazpost</option>
+                        <option value="rbk">RBK</option>
+                        <option value="fortebank">ForteBank</option>
+                        <option value="visa-depkasa">Visa Depkasa</option>
+                        <option value="moneta-wallet">Moneta Wallet</option>
+                        <option value="multibanco">Multibanco</option>
+                        <option value="neteller">neteller</option>
+                        <option value="profee">Profee</option>
+                        <option value="paysafecard">Paysafecard</option>
+                        <option value="iwallet">iWallet</option>
+                        <option value="skrill">Skrill</option>
+                        <option value="hizliqr">Hizli QR</option>
+                        <option value="ideal">Ideal</option>
+                        <option value="trustly">Trustly</option>
+                        <option value="eps">Eps</option>
+                        <option value="giropay">Giropay</option>
+                        <option value="nordea">Nordea</option>
+                        <option value="poli">Poli</option>
+                        <option value="przelewy24">Przelewy24</option>
+                        <option value="rapid">Rapid</option>
+                        <option value="liqpay">Liqpay</option>
+                        <option value="online-china-banks">Online China Banks</option>
+                        <option value="online-indonesian-banks">Online Indonesian Banks</option>
+                        <option value="online-malaysian-banks">Online Malaysian Banks</option>
+                        <option value="online-thailand-banks">Online Thailand Banks</option>
+                        <option value="online-vietnam-banks">Online Vietnam Banks</option>
+                        <option value="online-indian-banks">Online Indian Banks</option>
+                        <option value="online-australian-banks">Online Australian Banks</option>
+                        <option value="online-korean-banks">Online Korean Banks</option>
+                        <option value="online-iran-banks">Online Iran Banks</option>
+                        <option value="vietnam-banks-qr">Vietnam Banks QR</option>
+                        <option value="vietnam-atm">Vietnam ATM</option>
+                        <option value="online-philippines-banks">Philippines Online Banking</option>
+                        <option value="philippines-atm">Philippines Over the Counter / ATM</option>
+                        <option value="bancnet-atm">Bancnet ATM</option>
+                        <option value="philippines-cash">Philippines Payment Centers</option>
+                        <option value="coinsph-wallet">Coins.ph</option>
+                        <option value="gcash-wallet">GCash</option>
+                        <option value="grabpay-wallet">GrabPay</option>
+                        <option value="paymaya-wallet">PayMaya</option>
+                        <option value="flutterwave">Flutterwave</option>
+                        <option value="mpesa">Mpesa</option>
+                        <option value="online-banking-dragonpay">Online Banking Via Dragonpay</option>
+                        <option value="otc-atm-dragonpay">OTC and ATM Via Dragonpay</option>
+                        <option value="mobile-dragonpay">Mobile Via Dragonpay</option>
+                        <option value="doku">Doku</option>
+                        <option value="indonesia-cash">Indonesian convenience stores</option>
+                        <option value="vietnam-cash">Vietnam convenience stores</option>
+                        <option value="alipay">Alipay</option>
+                        <option value="card-partner">Card via partner</option>
+                        <option value="card-token-partner">Card token via partner</option>
+                        <option value="wechat">WeChat</option>
+                        <option value="qiwi-kz">QiwiKz</option>
+                        <option value="nganluong-wallet">Nganluong Wallet</option>
+                        <option value="mcash">Mcash</option>
+                        <option value="boost">Boost</option>
+                        <option value="touchngo-wallet">Touch'nGo</option>
+                        <option value="shopee">Shopee</option>
+                        <option value="cis-cash">CIS</option>
+                        <option value="epaycash">Epay Cash</option>
+                        <option value="bigccash">BigC Cash</option>
+                        <option value="bloomzed-wallet">Bloomzed wallet</option>
+                        <option value="interac-online">Interac Online</option>
+                        <option value="interac-etransfer">Interac eTransfer</option>
+                        <option value="interac-cpi">Interac CPI</option>
+                        <option value="muchbetter">MuchBetter</option>
+                        <option value="mobi-card">Mobi</option>
+                        <option value="webmoney">WebMoney</option>
+                        <option value="webmoney-light">WebMoney Light</option>
+                        <option value="instant-cepbank">Instant-cepbank</option>
+                        <option value="instant-qr">Instant QR</option>
+                        <option value="indonesia-qr">Indonesia QR</option>
+                        <option value="papara-wallet">Papara Wallet</option>
+                        <option value="crypto">Crypto</option>
+                        <option value="online-banking-trustly">Trustly Online Banking</option>
+                        <option value="tinkoff-online-banking">Tinkoff</option>
+                        <option value="upi">UPIViaDLocal</option>
+                        <option value="neteller-wallet">Neteller Wallet</option>
+                        <option value="thai-qr">Thai QR</option>
+                        <option value="promptpay">Promptpay</option>
+                        <option value="hk-va">Hong Kong VA</option>
+                        <option value="hk-qr">Hong Kong QR</option>
+                        <option value="taiwan-atm">Tiawan ATM</option>
+                        <option value="taiwan-cash">Taiwan convenience stores</option>
+                        <option value="online-taiwan-banks">Taiwan Online Banks</option>
+                        <option value="wooppay">Wooppay</option>
+                        <option value="alfa-click">Alfa Click</option>
+                        <option value="sberbank">Sberbank</option>
+                        <option value="yandexMoney">Wallet YandexMoney</option>
+                        <option value="yoomoney-wallet">Wallet ЮMoney</option>
+                        <option value="cash-in">Cash Yandex</option>
+                        <option value="bancontact">Bancontact</option>
+                        <option value="boleto">Boleto</option>
+                        <option value="bank-transfer-brazil">Brazil bank Transfer</option>
+                        <option value="bank-transfer-japan">Japanese Bank Transfer</option>
+                        <option value="bank-transfer-indonesia">Indonesia Bank Transfer</option>
+                        <option value="paypal-wallet">PayPal</option>
+                        <option value="vkpay-wallet">VK Pay</option>
+                        <option value="wallet-partner">Wallet Partner</option>
+                        <option value="cashu">CashU</option>
+                        <option value="online-brazil-banks">Brazil Online Banking</option>
+                        <option value="online-mexico-banks">Mexico Online Banking</option>
+                        <option value="brazil-cash">Brazil Cash Voucher</option>
+                        <option value="mexico-cash">Mexico Cash Voucher</option>
+                        <option value="latvia">Online Latvian Banks</option>
+                        <option value="estonia">Online Estonian Banks</option>
+                        <option value="lithuania">Online Lithuanian Banks</option>
+                        <option value="netherlands">Online Netherlands Banks</option>
+                        <option value="card-p2p">P2P VIA B2B Bank online</option>
+                        <option value="uk">UK Online Banking</option>
+                        <option value="neosurf">NeoSurf</option>
+                        <option value="sbp-qr">QR-Code SBP</option>
+                        <option value="online-latvian-banks">Latvian Banks</option>
+                        <option value="online-lithuanian-banks">Lithuanian Banks</option>
+                        <option value="online-estonian-banks">Estonian Banks</option>
+                        <option value="online-netherlands-banks">Netherlands Banks</option>
+                        <option value="online-austrian-banks">Austrian Banks</option>
+                        <option value="online-belgian-banks">Belgian Banks</option>
+                        <option value="online-bulgarian-banks">Bulgarian Banks</option>
+                        <option value="online-croatian-banks">Croatian Banks</option>
+                        <option value="online-cypriot-banks">Cypriot Banks</option>
+                        <option value="online-czech-banks">Czech Banks</option>
+                        <option value="online-danish-banks">Dannish Banks</option>
+                        <option value="online-finnish-banks">Finnish Banks</option>
+                        <option value="online-french-banks">French Banks</option>
+                        <option value="online-german-banks">German Banks</option>
+                        <option value="online-greek-banks">Greek Banks</option>
+                        <option value="online-hungarian-banks">Hungarian Banks</option>
+                        <option value="online-icelandic-banks">Icelandic Banks</option>
+                        <option value="online-irish-banks">Irish Banks</option>
+                        <option value="online-italian-banks">Italian Banks</option>
+                        <option value="online-liechtenstein-banks">Liechtenstein Banks</option>
+                        <option value="online-luxembourg-banks">Luxenbourg Banks</option>
+                        <option value="online-maltese-banks">Maltese Banks</option>
+                        <option value="online-norwegian-banks">Norwegian Banks</option>
+                        <option value="online-polish-banks">Polish Banks</option>
+                        <option value="online-portuguese-banks">Portuguese Banks</option>
+                        <option value="online-romanian-banks">Romanian Banks</option>
+                        <option value="online-slovakian-banks">Slovakian Banks</option>
+                        <option value="online-slovenian-banks">Slovenian Banks</option>
+                        <option value="online_russian_banks">Russian Banks</option>
+                        <option value="online-spanish-banks">Spanish Banks</option>
+                        <option value="online-swedish-banks">Swedish Banks</option>
+                        <option value="online-swiss-banks">Swiss Banks</option>
+                        <option value="paytm-wallet">Paytm</option>
+                        <option value="pagoexpress">Pago Express</option>
+                        <option value="pagoefectivo">Pagoefectivo</option>
+                        <option value="pagoefectivo-voucher">Pagoefectivo Voucher</option>
+                        <option value="payme-wallet">PayMe Wallet</option>
+                        <option value="mobikwik-wallet">Mobikwik</option>
+                        <option value="airtel-wallet">Airtel</option>
+                        <option value="vodafone-mpesa-wallet">VodafoneMpesa</option>
+                        <option value="reliance-jio-wallet">RelianceJio</option>
+                        <option value="redpagos">Redpagos</option>
+                        <option value="servipag">Servipag</option>
+                        <option value="ola-money-wallet">OlaMoney</option>
+                        <option value="freecharge-wallet">Freecharge</option>
+                        <option value="phonepe-wallet">Phonepe</option>
+                        <option value="oxigen-wallet">Oxigen</option>
+                        <option value="sbibuddy-wallet">Sbibuddy</option>
+                        <option value="amazonpay-wallet">Amazonpay</option>
+                        <option value="quick-banks-india">Quick Banks India</option>
+                        <option value="kakaopay-wallet">Kakaopay</option>
+                        <option value="zalopay">Zalo QR Payment</option>
+                        <option value="payco-wallet">Payco</option>
+                        <option value="pix">Pix</option>
+                        <option value="zip-cash-wallet">ZipCash</option>
+                        <option value="itz-cash-wallet">ItzCash</option>
+                        <option value="bank-transfer-thailand">Thailand Bank Transfer</option>
+                        <option value="bank-transfer-vietnam">Vietnam Bank Transfer</option>
+                        <option value="erip">Erip</option>
+                        <option value="webpay-chile">Webpay Chile</option>
+                        <option value="blik">Blik</option>
+                        <option value="ovo">Ovo</option>
+                        <option value="momopay">Momopay</option>
+                        <option value="true-money">TrueMoney</option>
+                        <option value="privat24">Privat 24</option>
+                        <option value="verkkopankki">Verkkopankki</option>
+                        <option value="xoocash">Xoocash</option>
+                        <option value="klarna">Klarna</option>
+                        <option value="bnpl">Buy Now Pay Later</option>
+                        <option value="thailand-mobile-banking">Thailand mobile banking</option>
+                        <option value="bnpl-humm">Humm</option>
+                        <option value="klarnapns">Klarna PNS</option>
+                        <option value="mbway">MB Way</option>
+                        <option value="swish">Swish</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mode" class="label-important">Mode</label>
+                    <select id="mode" name="mode" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="purchase">Purchase</option>
+                        <option value="payout">Payout</option>
+                        <option value="card_tokenize">Tokenize card</option>
+                        <option value="card_verify">Verify card</option>
+                        <option value="money_transfer">Money transfer</option>
+                        <option value="presentation">Presentation</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <h4 class="text-uppercase">Language</h4>
+
+                <div class="form-group">
+                    <label for="language_code" class="label-important">Language code</label>
+                    <select id="language_code" class="form-control input-sm" name="language_code">
+                        <option value="">-</option>
+                        <option value="ar">Arabian (ar)</option>
+                        <option value="bg">Bulgarian (bg)</option>
+                        <option value="zh">China (zh)</option>
+                        <option value="zh-hant">China-Traditionaly (zh-hant)</option>
+                        <option value="en">English (en)</option>
+                        <option value="et">Estonian (et)</option>
+                        <option value="fa">Farsi (fa)</option>
+                        <option value="fi">Finnish (fi)</option>
+                        <option value="fr">French (fr)</option>
+                        <option value="de">German (de)</option>
+                        <option value="hi">Hindi (hi)</option>
+                        <option value="hu">Hungarian (hu)</option>
+                        <option value="id">Indonesian (id)</option>
+                        <option value="it">Italian (it)</option>
+                        <option value="ko">Korean (ko)</option>
+                        <option value="lv">Latvian (lv)</option>
+                        <option value="lt">Lithuania (lt)</option>
+                        <option value="ms">Malaysian (ms)</option>
+                        <option value="no">Norwegian (no)</option>
+                        <option value="pl">Polish (pl)</option>
+                        <option value="pt">Portugal (pt)</option>
+                        <option value="sk">Slovakia (sk)</option>
+                        <option value="es">Spain (es)</option>
+                        <option value="sv">Swedish (sv)</option>
+                        <option value="th">Thai (th)</option>
+                        <option value="tr">Turkish (tr)</option>
+                        <option value="ur">Urdu (ur)</option>
+                        <option value="vi">vietnamese (vi)</option>
+                        <option value="az">Азербайджанский (az)</option>
+                        <option value="hy">Армянский (hy)</option>
+                        <option value="el">Греческий (el)</option>
+                        <option value="kk">Казахский (kk)</option>
+                        <option value="ru">Русский (ru)</option>
+                        <option value="uz">Узбекский (uz)</option>
+                        <option value="uk">Украинский (uk)</option>
+                        <option value="cs">Чехия (cs)</option>
+                        <option value="ja">Японский (ja)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="region_code" class="label-important">Region code</label>
+                    <select id="region_code" name="region_code" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="BDC">Bad country</option>
+                        <option value="RU">Ru</option>
+                        <option value="US">Usa</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="DE">Germany</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="col-md-2">
+                <h4 class="text-uppercase">Behavior</h4>
+
+                <div class="form-group">
+                    <label for="list_payment_block">List payment block</label>
+                    <select id="list_payment_block" name="list_payment_block" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="payment_method">Last payment method</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="target_element">Target element</label>
+                    <select id="target_element" name="target_element" class="form-control input-sm">
+                        <option value="">Modal (null)</option>
+                        <option value="custom-terminal-output">Merchant's page</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="css_modal_wrap">Modal popup CSS class</label>
+                    <select id="css_modal_wrap" name="css_modal_wrap" class="form-control input-sm">
+                        <option value="standart">-</option>
+                        <option value="modal-popup">.modal-popup</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="force_paged_mode" class="label-container">Force paged mode
+                        <input type="checkbox" value="1" id="force_paged_mode" name="force_paged_mode"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_on_mobile" class="label-container">Redirect on mobile
+                        <input type="checkbox" value="1" id="redirect_on_mobile" name="redirect_on_mobile"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="close_on_missclick" class="label-container">Close on miss click
+                        <input type="checkbox" value="1" id="close_on_missclick" name="close_on_missclick"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="force_acs_new_window" class="label-container">ACS in new window
+                        <input type="checkbox" value="1" id="force_acs_new_window" name="force_acs_new_window"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="recurring_register" class="label-container">Recurring register
+                        <input type="checkbox" value="1" id="recurring_register" name="recurring_register"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="burn_cpu" class="label-container">Burn CPU
+                        <input type="checkbox" value="1" id="burn_cpu" name="recurring_register"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="checkout_script" class="label-container">Checkout script
+                        <input type="checkbox" value="1" id="checkout_script" name="checkout_script"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="via_telegram" class="label-container">Via Telegram
+                        <input type="checkbox" value="1" id="via_telegram" name="via_telegram"/>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <h4 class="text-uppercase">URL</h4>
+                <div class="form-group">
+                    <label for="redirect_success_url">URL success</label>
+                    <input type="text" id="redirect_success_url" class="form-control input-sm"
+                           name="redirect_success_url" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_success_mode">URL success mode</label>
+                    <select id="redirect_success_mode" class="form-control input-sm" name="redirect_success_mode">
+                        <option value="">-</option>
+                        <option value="iframe">Iframe</option>
+                        <option value="parent_page">Parent page</option>
+                        <option value="blank_page">Blank page</option>
+                        <option value="app">Redirect to app</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_fail_url">URL fail</label>
+                    <input type="text" id="redirect_fail_url" name="redirect_fail_url" class="form-control input-sm"
+                           value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_fail_mode">URL fail mode</label>
+                    <select id="redirect_fail_mode" name="redirect_fail_mode" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="iframe">Iframe</option>
+                        <option value="parent_page">Parent page</option>
+                        <option value="blank_page">Blank page</option>
+                        <option value="app">Redirect to app</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_return_url">URL return</label>
+                    <input type="text" id="redirect_return_url" class="form-control input-sm"
+                           name="redirect_return_url" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_tokenize_url">URL tokenize</label>
+                    <input type="text" id="redirect_tokenize_url" name="redirect_tokenize_url" value=""
+                           class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="redirect_tokenize_mode">URL tokenize mode</label>
+                    <select id="redirect_tokenize_mode" name="redirect_tokenize_mode" class="form-control input-sm">
+                        <option value="">-</option>
+                        <option value="iframe">Iframe</option>
+                        <option value="parent_page">Parent page</option>
+                        <option value="blank_page">Blank page</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <h4 class="text-uppercase">Merchant URL</h4>
+                <div class="form-group">
+                    <label for="merchant_success_url">Merchant URL success </label>
+                    <input type="text" id="merchant_success_url" name="merchant_success_url" value=""
+                           class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_success_enabled">Merchant URL success enabled </label>
+                    <select id="merchant_success_enabled"
+                            class="form-control input-sm" name="merchant_success_enabled">
+                        <option value="">-</option>
+                        <option value="0">Off</option>
+                        <option value="1">Redirect mode only</option>
+                        <option value="2">Both modes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_success_redirect_mode">Merchant URL success mode </label>
+                    <select id="merchant_success_redirect_mode"
+                            class="form-control input-sm" name="merchant_success_redirect_mode">
+                        <option value="">-</option>
+                        <option value="iframe">Iframe</option>
+                        <option value="parent_page">Parent page</option>
+                        <option value="blank_page">Blank page</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_fail_url">Merchant URL fail </label>
+                    <input type="text" id="merchant_fail_url" name="merchant_fail_url" value=""
+                           class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_fail_enabled">Merchant URL fail enabled </label>
+                    <select id="merchant_fail_enabled"
+                            class="form-control input-sm" name="merchant_fail_enabled">
+                        <option value="">-</option>
+                        <option value="0">Off</option>
+                        <option value="1">Redirect mode only</option>
+                        <option value="2">Both modes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_fail_redirect_mode">Merchant URL fail mode </label>
+                    <select id="merchant_fail_redirect_mode"
+                            class="form-control input-sm" name="merchant_fail_redirect_mode">
+                        <option value="">-</option>
+                        <option value="iframe">Iframe</option>
+                        <option value="parent_page">Parent page</option>
+                        <option value="blank_page">Blank page</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="merchant_fail_url">Merchant URL return</label>
+                    <input type="text" id="merchant_return_url" name="merchant_return_url" value=""
+                           class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_return_enabled">Merchant URL return enabled </label>
+                    <select id="merchant_return_enabled"
+                            class="form-control input-sm" name="merchant_return_enabled">
+                        <option value="">-</option>
+                        <option value="0">Off</option>
+                        <option value="1">Redirect mode only</option>
+                        <option value="2">Both modes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_return_redirect_mode">Merchant URL return mode </label>
+                    <select id="merchant_return_redirect_mode"
+                            class="form-control input-sm" name="merchant_return_redirect_mode">
+                        <option value="">-</option>
+                        <option value="iframe">Iframe</option>
+                        <option value="parent_page">Parent page</option>
+                        <option value="blank_page">Blank page</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_callback_url">Merchant URL callback</label>
+                    <input type="text" id="merchant_callback_url" name="merchant_callback_url" value=""
+                           class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="merchant_data">Merchant data</label>
+                    <textarea name="merchant_data"
+                              id="merchant_data"
+                              cols="100"
+                              rows="2"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <h4 class="text-uppercase">Custom</h4>
+                <div class="form-group">
+                    <label for="customer_id" class="label-important">Customer ID</label>
+                    <input type="text" id="customer_id" name="customer_id" class="form-control input-sm" value=""/>
+                </div>
+                <div class="form-group">
+                    <label for="mobile_phone">Mobile phone</label>
+                    <input type="text" id="mobile_phone" name="mobile_phone" value="" class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="account_token">Account Token</label>
+                    <input type="text" id="account_token" name="account_token" value="" class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="payment_description">Payment desc</label>
+                    <input id="payment_description" name="payment_description" class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="best_before">Best before</label>
+                    <input placeholder="2017-07-06T15:59:01+03" type="text" id="best_before" name="best_before"
+                           value="" class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="">Additional</label>
+                    <textarea name="additional_fields"
+                              id="additional_fields"
+                              cols="100"
+                              rows="2"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="">Cash voucher data</label>
+                    <textarea name="cash_voucher_data"
+                              id="cash_voucher_data"
+                              cols="100"
+                              rows="2"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="">Receipt data</label>
+                    <textarea name="receipt_data"
+                              id="receipt_data"
+                              cols="100"
+                              rows="2"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="salt">Salt</label>
+                    <input type="text" id="salt" name="salt" value="" class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="">Addendum data</label>
+                    <textarea name="addendum_data"
+                              id="addendum_data"
+                              cols="100"
+                              rows="4"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="debt_account">Debt account</label>
+                    <input id="debt_account" name="debt_account" class="form-control input-sm"/>
+                </div>
+                <div class="form-group">
+                    <label for="stored_card_type">Stored card type</label>
+                    <input type="text" id="stored_card_type" name="stored_card_type" class="form-control input-sm" />
+                </div>
+                <div class="form-group">
+                    <label for="booking_info">Booking info</label>
+                    <input type="text" id="booking_info" name="booking_info" class="form-control input-sm" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Payment extra params</label>
+                    <textarea name="payment_extra_param"
+                              id="payment_extra_param"
+                              cols="100"
+                              rows="6"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Payment method options (JSON)</label>
+                    <textarea name="payment_methods_options"
+                              id="payment_methods_options"
+                              cols="100"
+                              rows="6"
+                              style="width: 100%"
+                              class="form-control"
+                    ></textarea>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Send post message (JSON)</label>
+                    <textarea name="post_message_body"
+                              id="post_message_body"
+                              cols="100"
+                              rows="6"
+                              style="width: 100%"
+                              class="form-control"
+                    >{"message": "redirect", "url": "https://www.wikipedia.org"}</textarea>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Inspect static data available for your project</label>
+                    <br/>
+                    <button
+                            type="button"
+                            role="button"
+                            class="btn btn-primary"
+                            onclick="location.href = '/test-app/inspect?projectId=' + document.getElementById('project_id').value"
+                    >
+                        Inspect site cache
+                    </button>
+                    <button
+                            type="button"
+                            role="button"
+                            class="btn btn-primary"
+                            onclick="location.href = '/test-app/inspect?projectId=0'"
+                    >
+                        Inspect site cache (default)
+                    </button>
+                </div>
+                <div class="form-group">
+                    <h4>Try concept project now (specify alternative base url below)</h4>
+                    <label for="base_url">Base url</label>
+                    <input id="base_url" name="base_url" class="form-control input-sm"/>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="row text-center" style="margin-top: 20px;">
+        <div class="btn-controls">
+            <button type="button" id="widget_get" role="button"  class="btn btn-primary" >
+                Run widget GET
+            </button>
+            <button type="button"role="button" id="widget_post" class="btn btn-primary" >
+                Run widget POST
+            </button>
+            <button type="button" role="button" id="runIframe_get" class="btn btn-primary">
+                Run iFrame GET
+            </button>
+            <button type="button" role="button" id="runIframe_post" class="btn btn-primary">
+                Run iFrame POST
+            </button>
+            <button type="button" role="button" id="buildRedirectUrl-get" class="btn btn-info">
+                Build redirect url
+            </button>
+            <button type="button" role="button" id="buildRedirectUrl-post" class="btn btn-info">
+                Build POST redirect button
+            </button>
+            <button type="button" role="button" id="sendPostMessage" class="btn btn-info">
+                Sent Post Message
+            </button>
+            <!--        <button type="button"
+                            role="button"
+                            id="log-cleaner"
+                            onclick="cleanElement('custom-terminal-log')"
+                            class="btn btn-default"
+                    >Clear log
+                    </button>-->
+        </div>
+    </div>
+
+    <div class="row">
+        <div id="url-container" class="text-center" style="height: 1em; margin: 5px 0"></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="terminal-wrap">
+                <div id="custom-terminal-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <input type="checkbox" id="microframeMode">
+            <label class="custom-control-label" for="microframeMode">Microframe mode enabled</label>
+            <div id="merchant-side-emulation">
+                <h4 class="text-uppercase text-center">Emulation of behaviour on the merchant side
+                    (for microframe mode only)</h4>
+                <div class="row">
+                    <div class="col-md-12 text-center btn-controls">
+                        <button type="button" role="button" data-epwidget="ep-run-transaction" class="btn btn-primary">
+                            External submit trigger
+                        </button>
+                    </div>
+                    <div
+                            id="embedded-mode-errors-container"
+                            class="col-md-6 col-md-offset-3 hide"
+                            style="margin-top: 20px">
+                        <div class="panel panel-danger ">
+                            <div class="panel-heading">
+                                <div class="panel-title">
+                                    Displaying errors on the merchant side
+                                </div>
+                            </div>
+                            <div class="panel-body text-danger" id="embedded-mode-errors-panel"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <hr/>
+            <div id="custom-terminal-log"></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12 text-center">
+            <h4 class="text-uppercase">iFrame</h4>
+        </div>
+        <div class="col-md-12 text-center">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="iframe_width" class="label-important">Width</label>
+                    <input type="number"
+                           id="iframe_width"
+                           name="iframe_width"
+                           class="form-control input-sm iframe-control"
+                           data-target="width"
+                           value="700"/>
+                    &nbsp;
+                    <label for="iframe_height" class="label-important">Height</label>
+                    <input type="number"
+                           id="iframe_height"
+                           name="iframe_height"
+                           data-target="height"
+                           class="form-control input-sm iframe-control"
+                           value="700"/>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-12">
+            <div id="iframe-holder"></div>
+        </div>
+
+    </div>
+</div>
+<script src="https://paymentpage.ecommpay.com/shared/merchant.js"></script>
+<script src="./hmac-sha512.js"></script>
+<script src="./enc-base64.js"></script>
+<script src="./test-app.js"></script>
+
+</body>
+</html>
