@@ -1,6 +1,5 @@
 function fakeSignature(paramsToSign, salt, callback) {
     console.log('fakeSignature started. params:', paramsToSign);
-    //console.log('params keys', Object.keys(paramsToSign));
     const orderedParams = Object.keys(paramsToSign).sort().reduce(
         (obj, key) => {
             obj[key] = paramsToSign[key];
@@ -8,18 +7,14 @@ function fakeSignature(paramsToSign, salt, callback) {
         },
         {}
     );
-    //console.log('orderedParams:', orderedParams);
-    //console.log('ordered keys', Object.keys(orderedParams));
     var stringToSign = '';
-    //orderedParams.forEach(key, value);
+    var isFirstEl = true;
     Object.keys(orderedParams).forEach(function(key, index) {
-        var keyValue = key + ':' + orderedParams[key];
-        if (index !== 0) {
-            keyValue = ';' + keyValue;
+        if (!isFirstEl) {
+            stringToSign += ';';
         }
-        if (key != 'baseUrl') {
-            stringToSign += keyValue;
-        }
+        stringToSign += key + ':' + orderedParams[key];
+        isFirstEl = false;
     });
     console.log('stringToSign',stringToSign);
     var hash = CryptoJS.HmacSHA512(stringToSign, salt);
