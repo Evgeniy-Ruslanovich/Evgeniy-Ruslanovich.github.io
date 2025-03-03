@@ -85,6 +85,7 @@ var WIDGET_PARAMS = [
     'stored_card_type',
     'merchant_data',
     'booking_info',
+    'apple_allow_payments'
 ];
 
 var ENCODE_PARAMS = [

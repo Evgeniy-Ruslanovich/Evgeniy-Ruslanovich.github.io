@@ -26,6 +26,10 @@
     var MESSAGE_APPLE_PAY_SESSION_DATA_RECEIVED = 'epframe.apple_pay.session_data_received';
     var MESSAGE_APPLE_PAY_BEGIN_PAYMENT = 'epframe.apple_pay.begin_payment';
     var MESSAGE_APPLE_PAY_COMPLETE_PAYMENT = 'epframe.apple_pay.complete_payment';
+    var MESSAGE_APPLE_PAY_ON_PAYMENT_AUTHORIZED = 'epframe.apple_pay.on_payment_authorized';
+    var MESSAGE_APPLE_PAY_ON_CANCEL = 'epframe.apple_pay.on_cancel';
+    var MESSAGE_APPLE_PAY_REQUEST_AVAILABILLITY = 'epframe.apple_pay.request_availability';
+    var MESSAGE_APPLE_PAY_IS_AVAILABLE = 'epframe.apple_pay.available_on_parent_page';
 
     var MODE_PURCHASE = 'purchase';
 
@@ -54,6 +58,8 @@
             onAmountChange: {value: undefined},
             onTabChange: {tab: undefined}
         };
+
+        this.applePaySession = null;
 
         this.getBaseUrl = function () {
             if (config.baseUrl) {
@@ -371,9 +377,9 @@
                     var height = eventData.height ? eventData.height : window.innerHeight;
                     var width = eventData.width;
                     var msg = {
-                          formAnotherSrc: true,
-                          height: height,
-                          width: width
+                        formAnotherSrc: true,
+                        height: height,
+                        width: width
                     }
                     widgetInstance.modalResize(width, height);
                     widgetInstance.iframe.contentWindow.postMessage(JSON.stringify(msg), '*');
@@ -393,17 +399,20 @@
                 case MESSAGE_ACS_PARENT_PAGE_REDIRECT_RUN:
                     widgetInstance.runParentPage3dsRedirect(eventData.data);
                     break;
+                case MESSAGE_APPLE_PAY_REQUEST_AVAILABILLITY:
+                    widgetInstance.applePayCheckAvailability();
+                    break;
                 case MESSAGE_APPLE_PAY_BUTTON_CLICKED:
-                    this.initApplePaySession(eventData.data);
+                    widgetInstance.initApplePaySession(eventData.data);
                     break;
                 case MESSAGE_APPLE_PAY_SESSION_DATA_RECEIVED:
-                    this.applePayCompleteValidation(eventData.data);
+                    widgetInstance.applePayCompleteValidation(eventData.data);
                     break;
                 case MESSAGE_APPLE_PAY_BEGIN_PAYMENT:
-                    this.applePaySession.begin();
+                    widgetInstance.applePaySession.begin();
                     break;
                 case MESSAGE_APPLE_PAY_COMPLETE_PAYMENT:
-                    this.applePaySession.completePayment(eventData.data.status);
+                    widgetInstance.applePaySession.completePayment(eventData.data.status);
                     break;
             }
 
@@ -444,6 +453,9 @@
             ifrm.setAttribute('scrolling', 'no');
             ifrm.setAttribute('allowPaymentRequest', 'true');
             this.iframe = ifrm;
+            if(config.apple_allow_payments) {
+                ifrm.setAttribute('allow', 'payment');
+            }
 
             WidgetLibrary.registerPostListener(this);
 
@@ -513,7 +525,7 @@
             var iframe = this.iframe;
 
             if (height == undefined) {
-               height = iframe.offsetHeight;
+                height = iframe.offsetHeight;
             }
 
             iframe.style.height = height + 'px';
@@ -650,11 +662,11 @@
             }
         }
 
-          this.changeCrossColor = function (type) {
+        this.changeCrossColor = function (type) {
             type = type.replace(/"/g,'')
             var el = document.getElementById(BTN_CLOSE_ID);
             el.classList.add(type);
-          }
+        }
 
         /**
          * Unload iframe to log page unload events correctly
@@ -689,37 +701,47 @@
             form.submit();
         }
 
-        this.applePaySession = undefined;
-        this.appleMerchantSessionPromise = undefined;
-
         this.initApplePaySession = function (data) {
             if(!ApplePaySession || !ApplePaySession.canMakePayments()) {
                 console.error('Apple pay library can\'t make payment');
                 return;
             }
-            this.applePaySession = new window.ApplePaySession(data.apiVersion, data.sessionParams);
-            this.applePaySession.onvalidatemerchant = function(event) {
+            widgetInstance.applePaySession = new window.ApplePaySession(data.apiVersion, data.sessionParams);
+            widgetInstance.applePaySession.onvalidatemerchant = function(event) {
                 widgetInstance.sendPostMessage({
                     message:"epframe.apple_pay.on_validate_merchant",
                     data:{validationURL: event.validationURL, origin: window.location.origin}
                 });
             }
-            this.applePaySession.onpaymentauthorized = function(event) {
-                widgetInstance.sendPostMessage({message:"epframe.apple_pay.on_payment_authorized", data:event});
+            widgetInstance.applePaySession.onpaymentauthorized = function(event) {
+                widgetInstance.sendPostMessage({
+                    message: MESSAGE_APPLE_PAY_ON_PAYMENT_AUTHORIZED,
+                    data: event.payment,
+                });
             }
-            this.applePaySession.oncancel = function(event) {
-                widgetInstance.sendPostMessage({message:"epframe.apple_pay.on_cancel", data:event});
+            widgetInstance.applePaySession.oncancel = function() {
+                widgetInstance.sendPostMessage({
+                    message: MESSAGE_APPLE_PAY_ON_CANCEL,
+                });
                 try {
-                    this.applePaySession.abort();
+                    widgetInstance.applePaySession.abort();
                 } catch (e) {}
             }
         }
 
         this.applePayCompleteValidation = function(data) {
             try {
-                this.applePaySession.completeMerchantValidation(JSON.parse(data.merchantSession));
+                widgetInstance.applePaySession.completeMerchantValidation(JSON.parse(data.merchantSession));
             } catch (e) {
                 console.log('Apple Pay completeMerchantValidation error:', e);
+            }
+        }
+
+        this.applePayCheckAvailability = function() {
+            if (window.hasOwnProperty('ApplePaySession') && ApplePaySession.canMakePayments()) {
+                widgetInstance.sendPostMessage({message: MESSAGE_APPLE_PAY_IS_AVAILABLE, data: {isAvailable: true}});
+            } else {
+                widgetInstance.sendPostMessage({message: MESSAGE_APPLE_PAY_IS_AVAILABLE, data: {isAvailable: false}});
             }
         }
 
