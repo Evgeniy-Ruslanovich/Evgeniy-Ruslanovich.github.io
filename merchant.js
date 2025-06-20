@@ -453,7 +453,7 @@
             ifrm.setAttribute('scrolling', 'no');
             ifrm.setAttribute('allowPaymentRequest', 'true');
             this.iframe = ifrm;
-            if(config.apple_allow_payments) {
+            if(config.apple_allow_payment) {
                 ifrm.setAttribute('allow', 'payment');
             }
 
