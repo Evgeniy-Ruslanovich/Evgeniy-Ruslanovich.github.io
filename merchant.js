@@ -10,6 +10,7 @@
     var MESSAGE_LOADED = 'epframe.loaded';
     var MESSAGE_EXIT = 'epframe.exit';
     var MESSAGE_REDIRECT = 'epframe.redirect';
+    var MESSAGE_ACS_REDIRECT_IFRAME = 'epframe.acs_redirect_iframe';
     var MESSAGE_REDIRECT_IFRAME = 'epframe.redirect_iframe';
     var MESSAGE_REDIRECT_IFRAME_COMPLETE = 'epframe.redirect_iframe_complete';
     var MESSAGE_TEMPLATE_NAME = 'epframe.template_name';
@@ -30,12 +31,25 @@
     var MESSAGE_APPLE_PAY_ON_CANCEL = 'epframe.apple_pay.on_cancel';
     var MESSAGE_APPLE_PAY_REQUEST_AVAILABILLITY = 'epframe.apple_pay.request_availability';
     var MESSAGE_APPLE_PAY_IS_AVAILABLE = 'epframe.apple_pay.available_on_parent_page';
+    var MESSAGE_APPLE_PAY_CALL_LOAD_SDK = 'epframe.apple_pay.call_load_sdk';
+    var MESSAGE_APPLE_PAY_ON_SHIPPING_CONTACT_SELECTED = 'epframe.apple_pay.on_shipping_contact_selected';
+    var MESSAGE_APPLE_PAY_ON_SHIPPING_METHOD_SELECTED = 'epframe.apple_pay.on_shipping_method_selected';
+    var MESSAGE_EMBEDDED_MODE_CHECK_SUBMIT_RESULT = 'epframe.embedded_mode.check_submit.result';
+    var MESSAGE_EMBEDDED_MODE_CHECK_SHIPPING_ADDRESS_RESULT = 'epframe.embedded_mode.check_shipping_address.result';
+    var MESSAGE_EMBEDDED_MODE_CHECK_SHIPPING_METHOD_RESULT = 'epframe.embedded_mode.check_shipping_method.result';
+    var MESSAGE_EMBEDDED_MODE_CONFIRMATION_RESULT = 'epframe.embedded_mode.confirmation.result';
+    var MESSAGE_EMBEDDED_MODE_TRY_SUBMIT = 'epframe.embedded_mode.try_submit';
+    var MESSAGE_BUTTONS_DISABLE = 'epframe.embedded_mode.buttons_disable';
+    var MESSAGE_BUTTONS_ENABLE = 'epframe.embedded_mode.buttons_enable';
+    var MESSAGE_PAYMENT_TRY_AGAIN = 'epframe.payment.try_again';
+    var MESSAGE_PAYMENT_CANCELED = 'epframe.payment.canceled';
 
     var MODE_PURCHASE = 'purchase';
 
     var FRAME_MODE_IFRAME = 'iframe';
     var FRAME_MODE_POPUP = 'popup';
     var FRAME_MODE_TAB = 'tab';
+    var FRAME_MODE_EMBEDDED = 'embedded';
 
     /**
      * Class for widget instance
@@ -106,13 +120,19 @@
             document.getElementById('ep-modal-wrap').classList.remove("with-asc");
         };
 
-        /**
-         * Show widget in site DOM element
-         */
-        this.showInSiteElement = function () {
-            var target_element = config.target_element;
-            var el = null;
+        this.enterIframeFullscreen = function () {
+            this.iframe.classList.add("fullscreen-iframe");
+        };
 
+        this.exitIframeFullscren = function () {
+            this.iframe.classList.remove("fullscreen-iframe");
+        };
+
+        /**
+         * External submit for microframe
+         * @deprecated
+         */
+        this.externalSubmitForMicroframe = function () {
             var $submitButton = document.querySelector("[data-epwidget=" + BTN_EXTERNAL_SUBMIT + "]");
 
             if ($submitButton) {
@@ -120,8 +140,20 @@
                     widgetInstance.externalSubmit();
                 });
             }
+        };
 
-            this.setFrameMode(FRAME_MODE_IFRAME);
+        /**
+         * Show widget in site DOM element
+         */
+        this.showInSiteElement = function (frameMode = FRAME_MODE_IFRAME) {
+            var target_element = config.target_element;
+            var el = null;
+
+            if (frameMode === FRAME_MODE_IFRAME) {
+                this.externalSubmitForMicroframe();
+            }
+
+            this.setFrameMode(frameMode);
 
             if (typeof target_element == 'string') {
                 el = document.getElementById(target_element);
@@ -220,6 +252,10 @@
             widgetInstance.sendPostMessage({message: MESSAGE_EXTERNAL_WIDGET_FORM_SUBMISSION});
         };
 
+        this.trySubmit = function () {
+            widgetInstance.sendPostMessage({ message: MESSAGE_EMBEDDED_MODE_TRY_SUBMIT });
+        };
+
         /**
          * Append new element to DOM
          * @param el
@@ -265,6 +301,8 @@
                 widgetInstance.showNewTab();
             } else if (config.redirect_on_mobile && WidgetLibrary.isMobile()) {
                 widgetInstance.showNewTab();
+            } else if (config.frame_mode === FRAME_MODE_EMBEDDED) {
+                widgetInstance.showInSiteElement(FRAME_MODE_EMBEDDED);
             } else if (config.hasOwnProperty('target_element') && config.target_element) {
                 widgetInstance.showInSiteElement();
             } else {
@@ -313,9 +351,122 @@
                 widgetInstance.triggerCallbackByName(fn, data);
             }
 
-            var fn = ('on.' + msg.message.replace('epframe.', '')).toCamelCase();
+            var fn = `on.${msg.message}`
+                .replace('epframe.', '')
+                .toCamelCase();
+
+            fn = {
+                onEmbeddedModeCheckSubmit: 'onCheckSubmit',
+                onEmbeddedModeValidationError: 'onValidationError',
+                onEmbeddedModeShowLoader: 'onShowLoader',
+                onEmbeddedModeHideLoader: 'onHideLoader',
+                onEmbeddedModeCheckShippingAddress: 'onCheckShippingAddress',
+                onEmbeddedModeCheckShippingMethod: 'onCheckShippingMethod',
+                onEmbeddedModeConfirmation: 'onConfirmation',
+            }[fn] ?? fn;
 
             _triggerIfChange(fn, msg.data);
+        };
+
+        this.callbackOverrides = {
+            onCheckSubmit: function (data, originalCallback) {
+                var resolve = function (data) {
+                    widgetInstance.sendPostMessage({
+                        message: MESSAGE_EMBEDDED_MODE_CHECK_SUBMIT_RESULT,
+                        data: { result: true, ...data },
+                    });
+                    WidgetLibrary.broadcastToOtherWidgets(MESSAGE_BUTTONS_DISABLE, widgetInstance.guid);
+                };
+                var reject = function () {
+                    widgetInstance.sendPostMessage({
+                        message: MESSAGE_EMBEDDED_MODE_CHECK_SUBMIT_RESULT,
+                        data: { result: false },
+                    })
+                };
+                return originalCallback.apply(this, [data, resolve, reject]);
+            },
+            onCheckShippingAddress: function (data, originalCallback) {
+                var resolve = function (data) {
+                    if (widgetInstance.applePaySession) {
+                        var update = { newTotal: widgetInstance.getApplePayNewTotal(data.payment_amount) };
+
+                        if (data.shipping_methods && Array.isArray(data.shipping_methods)) {
+                            update.newShippingMethods = data.shipping_methods.map(function({ amount, ...rest }) {
+                                return {
+                                    ...rest,
+                                    amount: widgetInstance.formatAmount(amount)
+                                };
+                            });
+                        }
+
+                        widgetInstance.applePaySession.completeShippingContactSelection(update);
+                    } else {
+                        widgetInstance.sendPostMessage({
+                            message: MESSAGE_EMBEDDED_MODE_CHECK_SHIPPING_ADDRESS_RESULT,
+                            data: { result: true, ...data },
+                        });
+                    }
+                };
+                var reject = function (data) {
+                    if (widgetInstance.applePaySession) {
+                        widgetInstance.applePaySession.completeShippingContactSelection({
+                            newTotal: widgetInstance.getApplePayNewTotal(data.payment_amount),
+                            errors: widgetInstance.mapErrorsToApplePay(data.errors),
+                        });
+                    } else {
+                        widgetInstance.sendPostMessage({
+                            message: MESSAGE_EMBEDDED_MODE_CHECK_SHIPPING_ADDRESS_RESULT,
+                            data: { result: false, ...data },
+                        });
+                    }
+                };
+                return originalCallback.apply(this, [data, resolve, reject]);
+            },
+            onCheckShippingMethod: function (data, originalCallback) {
+                var resolve = function (data) {
+                    if (widgetInstance.applePaySession) {
+                        widgetInstance.applePaySession.completeShippingMethodSelection({
+                            newTotal: widgetInstance.getApplePayNewTotal(data.payment_amount)
+                        });
+                    } else {
+                        widgetInstance.sendPostMessage({
+                            message: MESSAGE_EMBEDDED_MODE_CHECK_SHIPPING_METHOD_RESULT,
+                            data: { result: true, ...data },
+                        });
+                    }
+                };
+                var reject = function (data) {
+                    if (!widgetInstance.applePaySession) {
+                        widgetInstance.sendPostMessage({
+                            message: MESSAGE_EMBEDDED_MODE_CHECK_SHIPPING_METHOD_RESULT,
+                            data: { result: false, ...data },
+                        })
+                    }
+                };
+                return originalCallback.apply(this, [data, resolve, reject]);
+            },
+            onConfirmation: function (data, originalCallback) {
+                var resolve = function (data) {
+                    widgetInstance.sendPostMessage({
+                        message: MESSAGE_EMBEDDED_MODE_CONFIRMATION_RESULT,
+                        data: { result: true, ...data },
+                    });
+                };
+                var reject = function (data = {}) {
+                    if (widgetInstance.applePaySession) {
+                        widgetInstance.applePaySession.completePayment({
+                            status: window.ApplePaySession.STATUS_FAILURE,
+                            errors: widgetInstance.mapErrorsToApplePay(data.errors),
+                        });
+                    }
+
+                    widgetInstance.sendPostMessage({
+                        message: MESSAGE_EMBEDDED_MODE_CONFIRMATION_RESULT,
+                        data: { result: false, ...data },
+                    });
+                };
+                return originalCallback.apply(this, [data, resolve, reject]);
+            },
         };
 
         /**
@@ -325,7 +476,12 @@
          */
         this.triggerCallbackByName = function (callbackName, data) {
             if (widgetInstance.config.hasOwnProperty(callbackName) && typeof(widgetInstance.config[callbackName]) == 'function') {
-                widgetInstance.config[callbackName].apply(this, [data]);
+                const originalCallback = widgetInstance.config[callbackName];
+                if (callbackName in widgetInstance.callbackOverrides) {
+                    widgetInstance.callbackOverrides[callbackName].apply(this, [data, originalCallback]);
+                } else {
+                    originalCallback.apply(this, [data]);
+                }
             }
         };
 
@@ -358,11 +514,15 @@
                         widgetInstance.onExit();
                     }
                     break;
+                case MESSAGE_ACS_REDIRECT_IFRAME:
+                    widgetInstance.enterIframeFullscreen();
+                    break;
                 case MESSAGE_REDIRECT_IFRAME:
                     widgetInstance.showIframeRedirect();
                     break;
                 case MESSAGE_REDIRECT_IFRAME_COMPLETE:
                     widgetInstance.redirectComplete();
+                    widgetInstance.exitIframeFullscren();
                     break;
                 case MESSAGE_TEMPLATE_NAME:
                     widgetInstance.addMerchantCss(eventData.data);
@@ -402,6 +562,9 @@
                 case MESSAGE_APPLE_PAY_REQUEST_AVAILABILLITY:
                     widgetInstance.applePayCheckAvailability();
                     break;
+                case MESSAGE_APPLE_PAY_CALL_LOAD_SDK:
+                    widgetInstance.loadApplePaySDKandCheckAvailability()
+                    break;
                 case MESSAGE_APPLE_PAY_BUTTON_CLICKED:
                     widgetInstance.initApplePaySession(eventData.data);
                     break;
@@ -413,6 +576,12 @@
                     break;
                 case MESSAGE_APPLE_PAY_COMPLETE_PAYMENT:
                     widgetInstance.applePaySession.completePayment(eventData.data.status);
+                    break;
+                case MESSAGE_PAYMENT_TRY_AGAIN:
+                    WidgetLibrary.broadcastToOtherWidgets(MESSAGE_BUTTONS_ENABLE, widgetInstance.guid);
+                    break;
+                case MESSAGE_PAYMENT_CANCELED:
+                    WidgetLibrary.broadcastToOtherWidgets(MESSAGE_BUTTONS_ENABLE, widgetInstance.guid);
                     break;
             }
 
@@ -458,7 +627,7 @@
             }
 
             WidgetLibrary.registerPostListener(this);
-
+            WidgetLibrary.registerWidget(this);
             return ifrm;
         };
 
@@ -678,6 +847,7 @@
             if (iframe && typeof iframe.setAttribute === 'function') {
                 iframe.setAttribute('src', '');
             }
+            WidgetLibrary.unregisterWidget(widgetInstance.guid);
         }
 
         /**
@@ -701,6 +871,52 @@
             form.submit();
         }
 
+        this.formatAmount = function(amount, currency) {
+            const CURRENCY_FRACTION_DIGITS = {
+                'VND': 0, 'JPY': 0, 'KZZ': 0, 'TST': 0, 'BIF': 0, 'BYR': 0, 'CLF': 0, 'CLP': 0, 'DJF': 0, 'GNF': 0, 'ISK': 0,
+                'KMF': 0, 'KRW': 0, 'PYG': 0, 'RWF': 0, 'UGX': 0, 'UYI': 0, 'VUV': 0, 'XAF': 0, 'XOF': 0, 'XPF': 0, 'XDR': 0, 'BHD': 3,
+                'IQD': 3, 'JOD': 3, 'KWD': 3, 'LYD': 3, 'OMR': 3, 'TND': 3,
+            };
+
+            const fractionDigits = currency && Object.keys(CURRENCY_FRACTION_DIGITS).includes(currency.toUpperCase())
+                ? CURRENCY_FRACTION_DIGITS[currency.toUpperCase()]
+                : 2;
+
+            const realAmount = amount / (fractionDigits ? Math.pow(10, fractionDigits) : 1);
+
+            return parseFloat(`${realAmount}`).toFixed(fractionDigits);
+        }
+
+        this.mapErrorsToApplePay = function(errors = {}) {
+            const appleErrors = [];
+
+            for (const [key, message] of Object.entries(errors.fields || {})) {
+                appleErrors.push(new window.ApplePayError(
+                    'shippingContactInvalid',
+                    {
+                        country_code: 'countryCode',
+                        region: 'administrativeArea',
+                        city: 'locality',
+                        postal_code: 'postalCode'
+                    }[key],
+                    message,
+                ));
+            }
+
+            if (errors.message || appleErrors.length === 0) {
+                appleErrors.push(new window.ApplePayError('addressUnserviceable'));
+            }
+
+            return appleErrors;
+        }
+
+        this.getApplePayNewTotal = function(amount) {
+            return {
+                label: 'payment ' + widgetInstance.config.payment_id,
+                amount: widgetInstance.formatAmount(amount ? amount : Number(widgetInstance.config.payment_amount)),
+            };
+        }
+
         this.initApplePaySession = function (data) {
             if(!ApplePaySession || !ApplePaySession.canMakePayments()) {
                 console.error('Apple pay library can\'t make payment');
@@ -720,12 +936,24 @@
                 });
             }
             widgetInstance.applePaySession.oncancel = function() {
+                widgetInstance.applePaySession = null;
                 widgetInstance.sendPostMessage({
                     message: MESSAGE_APPLE_PAY_ON_CANCEL,
                 });
-                try {
-                    widgetInstance.applePaySession.abort();
-                } catch (e) {}
+            }
+
+            widgetInstance.applePaySession.onshippingcontactselected = function(event) {
+                widgetInstance.sendPostMessage({
+                    message: MESSAGE_APPLE_PAY_ON_SHIPPING_CONTACT_SELECTED,
+                    data: event,
+                });
+            }
+
+            widgetInstance.applePaySession.onshippingmethodselected = function(event) {
+                widgetInstance.sendPostMessage({
+                    message: MESSAGE_APPLE_PAY_ON_SHIPPING_METHOD_SELECTED,
+                    data: event,
+                });
             }
         }
 
@@ -745,6 +973,25 @@
             }
         }
 
+        this.loadApplePaySDKandCheckAvailability = function() {
+            if (window.hasOwnProperty('ApplePaySession') ||
+                document.querySelector('script[src*="apple-pay-sdk.js"]')
+            ) {
+                widgetInstance.applePayCheckAvailability();
+                return;
+            }
+
+            var script = document.createElement('script');
+            script.onload = script.onerror = function () {
+                widgetInstance.applePayCheckAvailability();
+            };
+            script.src = 'https://applepay.cdn-apple.com/jsapi/v1.3.2/apple-pay-sdk.js';
+            script.crossOrigin = 'anonymous';
+            script.integrity = 'sha384-DZRWMZLyVXr+7shJfal8pIG2v4KisLoSWFjZQMUv0+GWaCwoa82qeHsWrbBIUDPU';
+
+            document.head.appendChild(script);
+        }
+
         this.init(btn, config);
     };
 
@@ -755,7 +1002,7 @@
     var WidgetLibrary = {
 
         baseUrl: null,
-
+        activeWidgets: {},
         /**
          * Start point for widget init
          * @param pay_btn_id
@@ -793,6 +1040,19 @@
             var inst = this.create(config, method);
             inst.run();
             return inst;
+        },
+
+        /**
+         * Run widget immediate
+         * @param {Object} config
+         * @param {string} method
+         * @returns {*}
+         */
+        runEmbedded: function (config, method) {
+            return this.run({
+                ...config,
+                frame_mode: FRAME_MODE_EMBEDDED,
+            }, method);
         },
 
         /**
@@ -955,6 +1215,42 @@
                 return url;
             }
             return url + (/\?/.test(url) ? '&' : '?') + param + '=' + encodeURIComponent(value);
+        },
+
+        /**
+         * Register widget instance for cross-iframe communication
+         * @param widgetInstance
+         */
+        registerWidget: function(widgetInstance) {
+            this.activeWidgets[widgetInstance.guid] = widgetInstance;
+        },
+
+        /**
+         * Unregister widget instance
+         * @param guid
+         */
+        unregisterWidget: function(guid) {
+            delete this.activeWidgets[guid];
+        },
+
+        /**
+         * Send message to all active widgets except the sender
+         * @param message
+         * @param senderGuid
+         * @param data
+         */
+        broadcastToOtherWidgets: function(message, senderGuid, data) {
+            for (var guid in this.activeWidgets) {
+                if (this.activeWidgets.hasOwnProperty(guid) && guid !== senderGuid) {
+                    var widget = this.activeWidgets[guid];
+                    if (widget && widget.iframe && widget.iframe.contentWindow) {
+                        widget.sendPostMessage({
+                            message: message,
+                            data: data || {}
+                        });
+                    }
+                }
+            }
         }
     };
 
